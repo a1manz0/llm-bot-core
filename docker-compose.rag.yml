@@ -1,0 +1,150 @@
+services:
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6383:6379"
+
+  postgres_llm_bot:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: llm_bot
+      POSTGRES_USER: llm_bot
+      POSTGRES_PASSWORD: llm_bot
+    volumes:
+      - postgres_llm_bot_data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U llm_bot -d llm_bot -h 127.0.0.1 -p 5432"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+
+  backend:
+    image: backend_dev:v1
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://llm_bot:llm_bot@postgres_llm_bot:5432/llm_bot
+      CELERY_BROKER_URL: "redis://redis:6379/0"
+      USE_CELERY_FOR_SUMMARY: "true"
+      RAG_ENABLED: "true"
+      EMBEDDINGS_URL: "http://bge_embeddings:7998"
+    depends_on:
+      postgres_llm_bot:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      bge_embeddings:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8084:8080"
+    command: ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8080", "--reload", "--access-log"]
+
+  directus:
+    image: directus/directus:latest
+    restart: unless-stopped
+    environment:
+      KEY: "llm-bot-core-key"
+      SECRET: "llm-bot-core-secret"
+      DB_CLIENT: "pg"
+      DB_HOST: "postgres_llm_bot"
+      DB_PORT: "5432"
+      DB_DATABASE: "llm_bot"
+      DB_USER: "llm_bot"
+      DB_PASSWORD: "llm_bot"
+      # Админ-пользователь будет создан при первом запуске, если задать эти переменные:
+      ADMIN_EMAIL: "admin@example.com"
+      ADMIN_PASSWORD: "admin"
+    depends_on:
+      - postgres_llm_bot
+    ports:
+      - "8057:8055"
+    volumes:
+      - directus_uploads:/directus/uploads
+
+  celery_worker:
+    image: backend_dev:v1
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://llm_bot:llm_bot@postgres_llm_bot:5432/llm_bot
+      CELERY_BROKER_URL: "redis://redis:6379/0"
+      USE_CELERY_FOR_SUMMARY: "true"
+      # OPENROUTER_API_KEY и др. из .env для вызова LLM при суммаризации
+    volumes:
+      - ./backend:/app
+    depends_on:
+      postgres_llm_bot:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: ["celery", "-A", "src.app.celery_app", "worker", "--loglevel=info"]
+    restart: unless-stopped
+
+  telegram_bot:
+    image: telegram_bot_dev:v1
+    build:
+      context: ./telegram_bot
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      BACKEND_URL: "http://backend:8080"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    volumes:
+      - ./telegram_bot:/app
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - ./qdrant_data:/qdrant/storage
+
+  bge_embeddings:
+    image: michaelf34/infinity:latest
+    restart: unless-stopped
+    command: >
+      v2
+      --model-id BAAI/bge-m3
+      --engine torch
+      --device cpu
+      --port "7998"
+    environment:
+      - HF_HOME=/app/.cache
+      - HF_TOKEN=
+      - HUGGINGFACEHUB_API_TOKEN=
+      - OMP_NUM_THREADS=8
+      - MKL_NUM_THREADS=8
+    volumes:
+      - hf_cache:/app/.cache
+    ports:
+      - "7998:7998"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:7997/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
+
+volumes:
+  hf_cache:
+  postgres_llm_bot_data:
+  directus_uploads:

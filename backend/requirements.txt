@@ -1,0 +1,20 @@
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+
+# Database
+SQLAlchemy>=2.0.0
+psycopg2-binary>=2.9.0
+
+# Env/config
+python-dotenv==1.1.1
+
+# LLM / embeddings / RAG
+openai>=1.0.0
+qdrant-client==1.16.2
+
+# Celery + Redis
+celery[redis]>=5.4.0
+redis>=5.0.0
+
+# Network
+requests>=2.32.5
