@@ -142,10 +142,10 @@ docker compose up -d --build
 
 Для работы бота в `.env` должен быть указан `BOT_TOKEN` (токен от [@BotFather](https://t.me/BotFather)). После запуска напишите боту в Telegram — ответы формирует backend с учётом памяти и, при включённом RAG, семантического поиска. Команда `/start` сбрасывает сессию и начинает диалог заново.
 
-### 3. Включение RAG‑модуля (Qdrant + embeddings)
+### 3. Запуск с  RAG‑модулем (Qdrant + embeddings)
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.rag.yml up -d --build
+docker compose -f docker-compose.rag.yml up -d --build
 ```
 
 В этом случае дополнительно поднимаются:
@@ -157,7 +157,7 @@ docker compose -f docker-compose.yml -f docker-compose.rag.yml up -d --build
 
 **Directus** — это headless CMS и панель администратора поверх вашей PostgreSQL. Он не подменяет базу: подключается к той же БД, что и backend, автоматически подхватывает таблицы как «коллекции» и даёт веб‑интерфейс для просмотра и правки данных, REST/GraphQL API и гибкие права доступа.
 
-### Зачем он здесь
+### Что позволяет сделать Директус
 
 - **Просмотр диалогов** — все сообщения (`messages`), сессии (`chat_sessions`), сводки (`conversation_summaries`) и метаданные эмбеддингов (`embeddings`) в одном месте.
 - **Ручная правка** — можно поправить или удалить запись, пометить сессию завершённой и т.п.
@@ -167,17 +167,10 @@ docker compose -f docker-compose.yml -f docker-compose.rag.yml up -d --build
 ### Первый запуск
 
 1. Запустите стек: `docker compose up -d`.
-2. Откройте в браузере адрес Directus (например `http://localhost:8055` или порт из `docker-compose.yml`).
-3. При первом заходе создайте учётную запись администратора (или укажите `ADMIN_EMAIL` и `ADMIN_PASSWORD` в `environment` сервиса `directus`).
-4. В разделе «Коллекции» должны появиться таблицы: `chat_sessions`, `messages`, `conversation_summaries`, `embeddings` (если backend уже создал их при старте).
-
-### Рекомендуемые роли
-
-| Роль      | Описание |
-|-----------|----------|
-| **admin** | Полный доступ ко всем коллекциям и настройкам. |
-| **operator** | Чтение всех данных, возможность помечать сессии завершёнными, править заметки. |
-| **viewer** | Только просмотр без изменений. |
+2. Откройте в браузере адрес Directus (например `http://localhost:8057` или порт из `docker-compose.yml`).
+3. При первом заходе укажите учетные данные администратора `ADMIN_EMAIL` и `ADMIN_PASSWORD` из `environment` сервиса `directus`).
+4. При первом заходе потребуется инициализировать коллекции. Перейдите в настройки и прокликайте по всем таблицам, Директус их подхватит.
+5. В разделе «Коллекции» должны появиться таблицы: `chat_sessions`, `messages`, `conversation_summaries`, `embeddings` (если backend уже создал их при старте).
 
 Документация: [directus.io](https://directus.io) / [docs.directus.io](https://docs.directus.io).
 
