@@ -25,6 +25,7 @@ services:
 
   backend:
     image: backend_dev:v1
+    restart: unless-stopped
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -71,6 +72,7 @@ services:
 
   celery_worker:
     image: backend_dev:v1
+    restart: unless-stopped
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -89,7 +91,6 @@ services:
       redis:
         condition: service_started
     command: ["celery", "-A", "src.app.celery_app", "worker", "--loglevel=info"]
-    restart: unless-stopped
 
   telegram_bot:
     image: telegram_bot_dev:v1

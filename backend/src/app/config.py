@@ -61,7 +61,7 @@ def get_settings() -> Settings:
         qdrant_url=os.getenv("QDRANT_URL", "http://qdrant:6333"),
         qdrant_collection=os.getenv("QDRANT_COLLECTION", "chat_embeddings"),
         openrouter_api_key=os.getenv("OPENROUTER_API_KEY"),
-        openrouter_model=os.getenv("OPENROUTER_MODEL", "google/gemini-2.5-flash"),
+        openrouter_model=os.getenv("OPENROUTER_MODEL", "openai/gpt-5-mini"),
         openai_api_key=os.getenv("OPENAI_API_KEY"),
         openai_embedding_model=os.getenv(
             "OPENAI_EMBEDDING_MODEL", "text-embedding-3-small"
